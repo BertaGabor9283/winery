@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pincekönyv</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="alternate icon" type="image/png" href="/favicon.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:           #f7f4ef;
+    --surface:      #ffffff;
+    --surface2:     #f0ece4;
+    --border:       rgba(80,40,10,0.12);
+    --border2:      rgba(80,40,10,0.22);
+    --text:         #1a0f00;
+    --text2:        #6b5740;
+    --text3:        #a08060;
+    --wine:         #7a1e14;
+    --wine-light:   #f5ede8;
+    --gold:         #b8892a;
+    --gold-light:   #faf3e0;
+    --rose:         #c4547a;
+    --rose-light:   #faeaf0;
+    --green:        #2a7a4a;
+    --green-light:  #e8f5ee;
+    --purple:       #6a3a8a;
+    --purple-light: #f0eaf8;
+    --radius:       12px;
+    --radius-sm:    8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  .app { max-width: 900px; margin: 0 auto; padding: 0 16px 80px; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 38px; height: 38px; flex-shrink: 0; }
+  .app-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; letter-spacing: 0.02em; }
+  .app-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+  /* ── SYNC INDICATOR ── */
+  .sync-badge {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    display: flex; align-items: center; gap: 5px;
+    transition: all .2s; white-space: nowrap;
+  }
+  .sync-badge.idle    { display: none; }
+  .sync-badge.saving  { background: var(--gold-light); color: var(--gold); border: 1px solid rgba(184,137,42,0.25); }
+  .sync-badge.saved   { background: var(--green-light); color: var(--green); border: 1px solid rgba(42,122,74,0.25); }
+  .sync-badge.error   { background: #fdecea; color: #c0392b; border: 1px solid rgba(192,57,43,0.25); }
+  .sync-badge.loading { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+
+  .spinner-sm { display: inline-block; width: 10px; height: 10px; border: 1.5px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── STATS ── */
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .stat-value { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600; line-height: 1; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+  .search-wrap { flex: 1; min-width: 200px; position: relative; }
+  .search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); opacity: 0.4; width: 16px; height: 16px; pointer-events: none; }
+  .search {
+    width: 100%; padding: 9px 12px 9px 34px;
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text); font-size: 13px;
+    font-family: 'DM Sans', sans-serif; outline: none;
+  }
+  .search:focus { border-color: var(--wine); }
+  .sort-sel {
+    font-size: 12px; padding: 9px 12px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border2); background: var(--surface);
+    color: var(--text2); font-family: 'DM Sans', sans-serif; outline: none; cursor: pointer;
+  }
+  .btn-add {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 16px; background: var(--wine); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 13px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 500;
+    white-space: nowrap; transition: background .15s;
+  }
+  .btn-add:hover { background: #5e160f; }
+
+  /* ── FILTER CHIPS ── */
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip {
+    font-size: 12px; padding: 5px 13px; border-radius: 20px;
+    border: 1px solid var(--border2); background: var(--surface);
+    color: var(--text2); cursor: pointer; transition: all .15s;
+    white-space: nowrap; user-select: none;
+  }
+  .chip:hover { border-color: var(--wine); color: var(--wine); }
+  .chip.active-vörös  { background: var(--wine);   color: #fff; border-color: var(--wine); }
+  .chip.active-fehér  { background: var(--gold);   color: #fff; border-color: var(--gold); }
+  .chip.active-rosé   { background: var(--rose);   color: #fff; border-color: var(--rose); }
+  .chip.active-pezsgő { background: var(--green);  color: #fff; border-color: var(--green); }
+  .chip.active-édes   { background: var(--purple); color: #fff; border-color: var(--purple); }
+  .chip.active-all    { background: var(--text);   color: #fff; border-color: var(--text); }
+
+  /* ── WINE CARDS ── */
+  .wine-list { display: flex; flex-direction: column; gap: 6px; }
+  .wcard {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 13px 16px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s;
+  }
+  .wcard:hover { border-color: var(--border2); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  .wtype-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .winfo { flex: 1; min-width: 0; }
+  .wname { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wmeta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .wbadge { font-size: 10px; padding: 3px 9px; border-radius: 12px; font-weight: 500; flex-shrink: 0; white-space: nowrap; }
+  .wloc { font-size: 11px; color: var(--text3); text-align: right; min-width: 76px; flex-shrink: 0; line-height: 1.6; }
+  .wval { font-size: 13px; font-weight: 500; min-width: 80px; text-align: right; flex-shrink: 0; }
+  .wdel {
+    background: none; border: none; cursor: pointer; color: var(--text3);
+    padding: 4px 6px; border-radius: 6px; opacity: 0;
+    transition: opacity .15s; font-size: 14px; flex-shrink: 0;
+  }
+  .wcard:hover .wdel { opacity: 1; }
+  .wdel:hover { color: #c0392b; background: #fdecea; }
+  .empty { text-align: center; padding: 48px 16px; color: var(--text3); font-size: 14px; }
+
+  /* ── DOT / BADGE COLORS ── */
+  .dot-vörös  { background: var(--wine); }
+  .dot-fehér  { background: var(--gold); }
+  .dot-rosé   { background: var(--rose); }
+  .dot-pezsgő { background: var(--green); }
+  .dot-édes   { background: var(--purple); }
+  .dot-other  { background: #888; }
+
+  .badge-vörös  { background: var(--wine-light);   color: var(--wine); }
+  .badge-fehér  { background: var(--gold-light);   color: var(--gold); }
+  .badge-rosé   { background: var(--rose-light);   color: var(--rose); }
+  .badge-pezsgő { background: var(--green-light);  color: var(--green); }
+  .badge-édes   { background: var(--purple-light); color: var(--purple); }
+  .badge-other  { background: var(--surface2);     color: var(--text2); }
+
+  /* ── MODAL ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,5,0,0.5); z-index: 200;
+    align-items: flex-end; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px; width: 100%; max-width: 560px;
+    max-height: 92vh; overflow-y: auto;
+    border-top: 3px solid var(--wine);
+  }
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600;
+    margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-xbtn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text3); padding: 2px 6px; border-radius: 6px; line-height: 1; }
+  .modal-xbtn:hover { background: var(--surface2); }
+
+  .fgrid  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fgrid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .ff { display: flex; flex-direction: column; gap: 5px; }
+  .ff.full { grid-column: 1 / -1; }
+  .ff label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; }
+  .ff input, .ff select {
+    font-size: 13px; padding: 9px 11px;
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif; outline: none; width: 100%;
+  }
+  .ff input:focus, .ff select:focus { border-color: var(--wine); background: var(--surface); }
+
+  .section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text3); margin: 14px 0 8px;
+    border-bottom: 1px solid var(--border); padding-bottom: 5px;
+  }
+
+  .factions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-save {
+    flex: 1; padding: 11px; background: var(--wine); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-size: 14px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 500;
+    transition: background .15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-save:hover:not(:disabled) { background: #5e160f; }
+  .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-cancel {
+    padding: 11px 22px; background: transparent; color: var(--text2);
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer;
+  }
+
+  /* ── BARCODE SCANNER ── */
+  .scan-box {
+    background: var(--surface2); border: 1px dashed var(--border2);
+    border-radius: var(--radius-sm); padding: 14px; text-align: center; margin-bottom: 14px;
+  }
+  .scan-placeholder { font-size: 12px; color: var(--text3); line-height: 1.7; }
+  #barcode-video { width: 100%; max-height: 220px; border-radius: 8px; display: none; background: #000; }
+  #barcode-canvas { display: none; }
+  .btn-start-scan {
+    font-size: 12px; padding: 8px 16px; background: var(--text); color: #fff;
+    border: none; border-radius: 6px; cursor: pointer; margin-top: 8px;
+    font-family: 'DM Sans', sans-serif; transition: background .15s;
+  }
+  .btn-start-scan:hover { background: #3a2a10; }
+  .btn-stop-scan {
+    font-size: 12px; padding: 6px 12px; background: #c0392b; color: #fff;
+    border: none; border-radius: 6px; cursor: pointer; margin-top: 6px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .scan-status { font-size: 12px; color: var(--text2); margin-top: 6px; min-height: 18px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text); color: #fff;
+    padding: 11px 22px; border-radius: var(--radius-sm);
+    font-size: 13px; z-index: 999; transition: transform .3s;
+    pointer-events: none; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── LOADING SCREEN ── */
+  .loading-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; z-index: 500;
+  }
+  .loading-screen.hidden { display: none; }
+  .loading-spinner { width: 36px; height: 36px; border: 3px solid var(--border2); border-top-color: var(--wine); border-radius: 50%; animation: spin .8s linear infinite; }
+  .loading-text { font-size: 14px; color: var(--text3); }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: repeat(2,1fr); }
+    .fgrid  { grid-template-columns: 1fr; }
+    .fgrid3 { grid-template-columns: 1fr 1fr; }
+    .toolbar { flex-wrap: wrap; }
+    .app-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Pincekönyv betöltése…</div>
+</div>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <svg class="logo-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect width="64" height="64" rx="14" fill="#7a1e14"/>
+        <path d="M20 10 h24 l2 14 C46 34 40 42 32 42 C24 42 18 34 18 24 Z" fill="#f5ede8" opacity="0.95"/>
+        <clipPath id="gc"><path d="M20 10 h24 l2 14 C46 34 40 42 32 42 C24 42 18 34 18 24 Z"/></clipPath>
+        <rect x="16" y="26" width="32" height="18" fill="#c44a30" clip-path="url(#gc)" opacity="0.85"/>
+        <rect x="29.5" y="42" width="5" height="10" rx="2" fill="#f5ede8" opacity="0.9"/>
+        <rect x="21" y="52" width="22" height="4" rx="2" fill="#f5ede8" opacity="0.9"/>
+      </svg>
+      <div>
+        <div class="app-title">Pincekönyv</div>
+        <div class="app-sub">Borgyűjtemény</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="sync-badge idle" id="syncBadge"></div>
+      <select class="sort-sel" id="sortSel">
+        <option value="nev">Rendezés: Név</option>
+        <option value="pinceszet">Rendezés: Pincészet</option>
+        <option value="evjarat">Rendezés: Évjárat</option>
+        <option value="ertek">Rendezés: Érték</option>
+        <option value="polc">Rendezés: Polc</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="stat-label">Összes bor</div><div class="stat-value" id="stTotal">–</div></div>
+    <div class="stat"><div class="stat-label">Típusok</div><div class="stat-value" id="stTypes">–</div></div>
+    <div class="stat"><div class="stat-label">Polcok</div><div class="stat-value" id="stPolc">–</div></div>
+    <div class="stat"><div class="stat-label">Becsült érték</div><div class="stat-value" id="stVal" style="font-size:18px;">–</div></div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="6.5" cy="6.5" r="4.5"/><line x1="10" y1="10" x2="14" y2="14"/>
+      </svg>
+      <input class="search" id="searchIn" placeholder="Keresés névben, pincészetben, típusban…">
+    </div>
+    <button class="btn-add" onclick="openModal(true)">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/>
+      </svg>
+      Új bor
+    </button>
+  </div>
+
+  <!-- FILTER CHIPS -->
+  <div class="filters">
+    <div class="chip active-all" data-f="all">Összes</div>
+    <div class="chip" data-f="vörös">🔴 Vörös</div>
+    <div class="chip" data-f="fehér">🟡 Fehér</div>
+    <div class="chip" data-f="rosé">🌸 Rosé</div>
+    <div class="chip" data-f="pezsgő">🟢 Pezsgő</div>
+    <div class="chip" data-f="édes">🟣 Édes</div>
+  </div>
+
+  <!-- LIST -->
+  <div class="wine-list" id="wineList"></div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="overlay" id="ov">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="mTitle">Új bor hozzáadása</span>
+      <button class="modal-xbtn" onclick="closeModal()">×</button>
+    </div>
+
+    <!-- BARCODE SCANNER -->
+    <div class="scan-box">
+      <video id="barcode-video" autoplay playsinline></video>
+      <canvas id="barcode-canvas"></canvas>
+      <div id="scan-placeholder" class="scan-placeholder">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a08060" stroke-width="1.5" style="margin-bottom:5px">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <line x1="7" y1="8" x2="7" y2="16"/><line x1="10" y1="8" x2="10" y2="16"/>
+          <line x1="13" y1="8" x2="13" y2="16"/><line x1="17" y1="8" x2="17" y2="16"/>
+        </svg><br>
+        Szkenneld be a vonalkódot a mezők automatikus kitöltéséhez
+        <br>
+        <button class="btn-start-scan" onclick="startBarcodeScanner()">Kamera indítása</button>
+      </div>
+      <div class="scan-status" id="scanStatus"></div>
+      <button class="btn-stop-scan" id="stopScanBtn" style="display:none" onclick="stopBarcodeScanner()">Leállítás</button>
+    </div>
+
+    <div class="section-label">Bor adatai</div>
+    <div class="fgrid">
+      <div class="ff full"><label>Név *</label><input id="fNev" placeholder="pl. Egri Bikavér"></div>
+      <div class="ff full"><label>Pincészet</label><input id="fPinc" placeholder="pl. Thummerer"></div>
+      <div class="ff">
+        <label>Típus *</label>
+        <select id="fTipus">
+          <option value="">Válassz…</option>
+          <option>Száraz vörös</option><option>Félszáraz vörös</option><option>Édes vörös</option>
+          <option>Száraz fehér</option><option>Félszáraz fehér</option><option>Édes fehér</option>
+          <option>Száraz rosé</option><option>Félszáraz rosé</option><option>Édes rosé</option>
+          <option>rosé</option>
+          <option>Száraz pezsgő</option><option>Félszáraz pezsgő</option><option>Édes pezsgő</option>
+          <option>Édes mézbor</option><option>Desszert</option>
+        </select>
+      </div>
+      <div class="ff"><label>Évjárat</label><input id="fEv" type="text" placeholder="pl. 2021"></div>
+    </div>
+
+    <div class="section-label">Elhelyezés</div>
+    <div class="fgrid3">
+      <div class="ff"><label>Polc</label><input id="fPolc" type="number" placeholder="3"></div>
+      <div class="ff"><label>Sor</label><input id="fSor" type="number" placeholder="2"></div>
+      <div class="ff"><label>Hely</label><input id="fHely" type="number" placeholder="4"></div>
+    </div>
+
+    <div class="section-label">Érték & megjegyzés</div>
+    <div class="fgrid">
+      <div class="ff"><label>Utolsó ismert érték (Ft)</label><input id="fErtek" type="number" placeholder="pl. 4500"></div>
+      <div class="ff"><label>Megjegyzés</label><input id="fMegj" placeholder="pl. különleges alkalmakra"></div>
+    </div>
+
+    <div class="factions">
+      <button class="btn-cancel" onclick="closeModal()">Mégse</button>
+      <button class="btn-save" id="saveBtn" onclick="saveWine()">Mentés</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const API = '/api/wines';
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let wines = [];
+let activeFilters = new Set(['all']);
+let searchQ = '', sortBy = 'nev', editId = null;
+let scanStream = null, codeReader = null;
+
+// ── SYNC BADGE ─────────────────────────────────────────────────────────────
+let syncTimer = null;
+function setSyncBadge(state, msg) {
+  const el = document.getElementById('syncBadge');
+  el.className = 'sync-badge ' + state;
+  const icons = {
+    saving:  '<span class="spinner-sm"></span>',
+    saved:   '✓',
+    error:   '✕',
+    loading: '<span class="spinner-sm"></span>',
+  };
+  el.innerHTML = (icons[state] || '') + ' ' + msg;
+  if (syncTimer) clearTimeout(syncTimer);
+  if (state === 'saved') {
+    syncTimer = setTimeout(() => { el.className = 'sync-badge idle'; }, 3000);
+  }
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function fetchWines() {
+  setSyncBadge('loading', 'Betöltés…');
+  try {
+    const r = await fetch(API, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    wines = Array.isArray(data) ? data : [];
+    setSyncBadge('saved', 'Szinkronizálva');
+    return true;
+  } catch(e) {
+    setSyncBadge('error', 'Betöltési hiba');
+    showToast('Hiba a betöltésnél: ' + e.message);
+    return false;
+  }
+}
+
+async function persistWines() {
+  setSyncBadge('saving', 'Mentés…');
+  try {
+    const r = await fetch(API, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(wines),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    setSyncBadge('saved', 'Mentve');
+  } catch(e) {
+    setSyncBadge('error', 'Mentési hiba!');
+    showToast('Mentési hiba: ' + e.message);
+  }
+}
+
+// ── CATEGORY ───────────────────────────────────────────────────────────────
+function getCat(tipus) {
+  const t = (tipus || '').toLowerCase();
+  if (t.includes('vörös')) return 'vörös';
+  if (t.includes('fehér')) return 'fehér';
+  if (t.includes('rosé') || t.includes('rozé')) return 'rosé';
+  if (t.includes('pezsgő')) return 'pezsgő';
+  if (t.includes('édes') || t.includes('méz') || t.includes('desszert') || t.includes('aszú') || t.includes('késői')) return 'édes';
+  return 'other';
+}
+
+// ── FILTERS ────────────────────────────────────────────────────────────────
+function toggleFilter(f) {
+  if (f === 'all') {
+    activeFilters = new Set(['all']);
+  } else {
+    activeFilters.delete('all');
+    activeFilters.has(f) ? activeFilters.delete(f) : activeFilters.add(f);
+    if (activeFilters.size === 0) activeFilters.add('all');
+  }
+  document.querySelectorAll('.chip').forEach(c => {
+    c.className = 'chip';
+    if (activeFilters.has(c.dataset.f)) c.classList.add('active-' + c.dataset.f);
+  });
+  render();
+}
+
+// ── FORMAT HELPERS ─────────────────────────────────────────────────────────
+function fmtVal(v) {
+  if (!v && v !== 0) return '–';
+  return Math.round(Number(v)).toLocaleString('hu-HU') + ' Ft';
+}
+function fmtLoc(w) {
+  const p = [];
+  if (w.polc) p.push('P' + w.polc);
+  if (w.sor)  p.push('S' + w.sor);
+  if (w.hely) p.push('H' + w.hely);
+  return p.join(' · ') || '–';
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function getFiltered() {
+  return wines
+    .filter(w => activeFilters.has('all') || activeFilters.has(getCat(w.tipus)))
+    .filter(w => {
+      if (!searchQ) return true;
+      const q = searchQ.toLowerCase();
+      return (w.nev||'').toLowerCase().includes(q)
+          || (w.pinceszet||'').toLowerCase().includes(q)
+          || (w.tipus||'').toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      if (sortBy === 'nev')      return (a.nev||'').localeCompare(b.nev||'', 'hu');
+      if (sortBy === 'pinceszet') return (a.pinceszet||'').localeCompare(b.pinceszet||'', 'hu');
+      if (sortBy === 'evjarat')  return (b.evjarat||'0').localeCompare(a.evjarat||'0');
+      if (sortBy === 'ertek')    return (b.ertek||0) - (a.ertek||0);
+      if (sortBy === 'polc')     return (parseInt(a.polc)||0)-(parseInt(b.polc)||0) || (parseInt(a.sor)||0)-(parseInt(b.sor)||0) || (parseInt(a.hely)||0)-(parseInt(b.hely)||0);
+      return 0;
+    });
+}
+
+function render() {
+  const filtered = getFiltered();
+  const polcok  = new Set(wines.map(w => w.polc).filter(Boolean));
+  const types   = new Set(wines.map(w => getCat(w.tipus)));
+  const totalVal = wines.reduce((s, w) => s + (w.ertek || 0), 0);
+
+  document.getElementById('stTotal').textContent = wines.length;
+  document.getElementById('stTypes').textContent = types.size;
+  document.getElementById('stPolc').textContent  = polcok.size;
+  document.getElementById('stVal').textContent   = totalVal ? Math.round(totalVal).toLocaleString('hu-HU') + ' Ft' : '–';
+
+  const list = document.getElementById('wineList');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty">Nincs találat a szűrőkre</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(w => {
+    const cat = getCat(w.tipus);
+    const meta = [w.pinceszet, (w.evjarat && w.evjarat !== '-' ? w.evjarat : '')].filter(Boolean).join(' · ');
+    return `<div class="wcard" data-id="${w.id}">
+      <div class="wtype-dot dot-${cat}"></div>
+      <div class="winfo">
+        <div class="wname">${esc(w.nev)}</div>
+        <div class="wmeta">${esc(meta)}</div>
+      </div>
+      <span class="wbadge badge-${cat}">${esc(w.tipus)}</span>
+      <div class="wloc">${fmtLoc(w)}</div>
+      <div class="wval">${fmtVal(w.ertek)}</div>
+      <button class="wdel" data-del="${w.id}" title="Törlés">✕</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.wcard').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('[data-del]')) return;
+      openEdit(parseInt(card.dataset.id));
+    });
+  });
+  list.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const w = wines.find(x => x.id === parseInt(btn.dataset.del));
+      if (!w) return;
+      if (!confirm('Törlöd ezt a bort?\n' + w.nev)) return;
+      wines = wines.filter(x => x.id !== w.id);
+      render();
+      await persistWines();
+    });
+  });
+}
+
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── MODAL ──────────────────────────────────────────────────────────────────
+function clearForm() {
+  ['fNev','fPinc','fEv','fPolc','fSor','fHely','fErtek','fMegj'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('fTipus').value = '';
+}
+
+function openModal(reset = true) {
+  if (reset) { editId = null; document.getElementById('mTitle').textContent = 'Új bor hozzáadása'; clearForm(); }
+  document.getElementById('ov').classList.add('open');
+  setTimeout(() => document.getElementById('fNev').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('ov').classList.remove('open');
+  stopBarcodeScanner();
+}
+
+function openEdit(id) {
+  const w = wines.find(x => x.id === id);
+  if (!w) return;
+  editId = id;
+  document.getElementById('mTitle').textContent = 'Bor szerkesztése';
+  document.getElementById('fNev').value   = w.nev || '';
+  document.getElementById('fPinc').value  = w.pinceszet || '';
+  document.getElementById('fTipus').value = w.tipus || '';
+  document.getElementById('fEv').value    = (w.evjarat === '-' || !w.evjarat) ? '' : w.evjarat;
+  document.getElementById('fPolc').value  = w.polc || '';
+  document.getElementById('fSor').value   = w.sor || '';
+  document.getElementById('fHely').value  = w.hely || '';
+  document.getElementById('fErtek').value = w.ertek || '';
+  document.getElementById('fMegj').value  = w.megjegyzes || '';
+  openModal(false);
+}
+
+async function saveWine() {
+  const nev   = document.getElementById('fNev').value.trim();
+  const tipus = document.getElementById('fTipus').value;
+  if (!nev || !tipus) { showToast('Név és típus megadása kötelező!'); return; }
+
+  const entry = {
+    nev, tipus,
+    pinceszet:  document.getElementById('fPinc').value.trim(),
+    evjarat:    document.getElementById('fEv').value.trim() || '-',
+    polc:       document.getElementById('fPolc').value.trim(),
+    sor:        document.getElementById('fSor').value.trim(),
+    hely:       document.getElementById('fHely').value.trim(),
+    ertek:      parseFloat(document.getElementById('fErtek').value) || null,
+    megjegyzes: document.getElementById('fMegj').value.trim(),
+  };
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-sm" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span> Mentés…';
+
+  if (editId) {
+    wines = wines.map(w => w.id === editId ? { ...entry, id: editId } : w);
+  } else {
+    entry.id = Date.now();
+    wines.push(entry);
+  }
+
+  render();
+  closeModal();
+  await persistWines();
+
+  btn.disabled = false;
+  btn.innerHTML = 'Mentés';
+}
+
+// ── BARCODE SCANNER ────────────────────────────────────────────────────────
+function startBarcodeScanner() {
+  const video = document.getElementById('barcode-video');
+  const ph    = document.getElementById('scan-placeholder');
+  const sb    = document.getElementById('stopScanBtn');
+  const st    = document.getElementById('scanStatus');
+  ph.style.display = 'none'; video.style.display = 'block'; sb.style.display = 'inline-block';
+  st.textContent = 'Kamera indítása…';
+
+  if (typeof ZXing === 'undefined') {
+    st.textContent = 'Vonalkód-olvasó nem érhető el. Töltsd be az oldalt újra.';
+    video.style.display = 'none'; ph.style.display = 'block'; return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      scanStream = stream; video.srcObject = stream;
+      st.textContent = 'Tartsd a vonalkódot a kamera elé…';
+      codeReader = new ZXing.BrowserMultiFormatReader();
+      codeReader.decodeFromVideoDevice(null, 'barcode-video', (result, err) => {
+        if (result) {
+          const code = result.getText();
+          st.textContent = 'Beolvasva: ' + code;
+          stopBarcodeScanner();
+          fillFromBarcode(code);
+        }
+      });
+    })
+    .catch(() => { st.textContent = 'Kamera nem érhető el (engedélyezd a böngészőben).'; });
+}
+
+function stopBarcodeScanner() {
+  if (codeReader) { try { codeReader.reset(); } catch(e) {} codeReader = null; }
+  if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+  const video = document.getElementById('barcode-video');
+  if (video) { video.style.display = 'none'; video.srcObject = null; }
+  const ph = document.getElementById('scan-placeholder');
+  if (ph) ph.style.display = 'block';
+  const sb = document.getElementById('stopScanBtn');
+  if (sb) sb.style.display = 'none';
+}
+
+// Vonalkód alapján mező kitöltés – Open Food Facts / Open Library adatbázisból
+async function fillFromBarcode(code) {
+  const st = document.getElementById('scanStatus');
+  st.textContent = 'Bor azonosítása…';
+  try {
+    // Try Open Food Facts (barcodes for food/drinks)
+    const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`, { cache: 'no-store' });
+    const data = await r.json();
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const name = p.product_name || p.product_name_hu || '';
+      const brand = p.brands || '';
+      if (name) {
+        document.getElementById('fNev').value = name;
+        document.getElementById('fPinc').value = brand;
+        st.textContent = '✓ Kitöltve: ' + name;
+        showToast('Adatok kitöltve: ' + name);
+        return;
+      }
+    }
+    st.textContent = 'Nem találtam adatot erre a vonalkódra. Töltsd ki kézzel.';
+  } catch(e) {
+    st.textContent = 'Keresési hiba. Töltsd ki kézzel.';
+  }
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── EVENTS ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => toggleFilter(c.dataset.f)));
+document.getElementById('searchIn').addEventListener('input', e => { searchQ = e.target.value; render(); });
+document.getElementById('sortSel').addEventListener('change', e => { sortBy = e.target.value; render(); });
+document.getElementById('ov').addEventListener('click', e => { if (e.target === document.getElementById('ov')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+(async () => {
+  await fetchWines();
+  render();
+  document.getElementById('loadingScreen').classList.add('hidden');
+})();
+</script>
+</body>
+</html>

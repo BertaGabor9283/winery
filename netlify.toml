@@ -1,0 +1,17 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/wines"
+  to = "/.netlify/functions/wines"
+  status = 200
+
+[[headers]]
+  for = "/favicon.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"
